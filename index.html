@@ -1,9 +1,153 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>YouTube 下载命令生成器</title><style>
 :root{color-scheme:light dark;--bg:#f5f6f8;--surface:#fff;--fg:#1c2430;--muted:#596475;--line:#d9dfe7;--accent:#2459c4} @media(prefers-color-scheme:dark){:root{--bg:#141820;--surface:#202630;--fg:#eef1f7;--muted:#b2bbc9;--line:#404a59;--accent:#8bb2ff}} *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,'Microsoft YaHei',sans-serif}main{max-width:800px;margin:32px auto;padding:0 18px}h1{font-size:26px;line-height:1.3;margin:0 0 8px}h2{font-size:18px;margin:0 0 12px}p{margin:8px 0;color:var(--muted)}section{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;margin:18px 0}label{display:block;font-weight:600;margin:14px 0 5px}input,select,textarea,button{font:inherit}input:not([type=checkbox]),select,textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--fg)}textarea{resize:vertical;min-height:150px;font:14px/1.6 Consolas,monospace}button{border:1px solid var(--line);border-radius:7px;padding:9px 16px;background:var(--surface);color:var(--fg);cursor:pointer}button.primary{background:var(--accent);color:white;border-color:var(--accent)}@media(prefers-color-scheme:dark){button.primary{color:#141820}}button:disabled{opacity:.45;cursor:default}.grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}@media(max-width:540px){.grid{grid-template-columns:1fr}}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.small{font-size:13px}a{color:var(--accent)}:focus-visible{outline:2px solid var(--accent);outline-offset:3px}#status{min-height:1.6em}label.check{font-weight:400}code{font-family:Consolas,monospace}
-</style></head><body><main><h1>YouTube 下载命令生成器</h1><p>Windows 11 · PowerShell 5.1+ · yt-dlp / FFmpeg / Deno</p><section><h2>下载配置</h2><label for="url">YouTube 视频链接</label><input id="url" type="url" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off" spellcheck="false"><div class="grid"><div><label for="quality">画质上限</label><select id="quality"><option value="best">最高可用画质</option><option value="4320">4320p · 8K</option><option value="2160">2160p · 4K</option><option value="1440">1440p · 2K</option><option value="1080" selected>1080p</option><option value="720">720p</option><option value="480">480p</option><option value="360">360p</option></select></div><div><label for="threads">分片下载并发数（1～64）</label><input id="threads" type="number" min="1" max="64" step="1" value="16"></div><div><label for="subs">日语字幕</label><select id="subs"><option value="both">投稿者字幕优先 / 自动字幕</option><option value="manual">仅投稿者字幕</option><option value="auto">仅自动字幕</option><option value="none">不下载字幕</option></select></div><div><label for="container">视频容器</label><select id="container"><option value="mp4">MP4</option><option value="mkv">MKV</option></select></div></div><label for="path">保存位置（绝对路径；留空使用默认目录）</label><input id="path" placeholder="默认：用户下载目录\YouTube" spellcheck="false"><label class="check"><input id="embed" type="checkbox"> 同时将字幕嵌入视频，保留独立字幕文件</label><p class="small">画质是上限，不保证视频源具有该画质。并发数只对支持分片下载的协议生效；高并发可能降低稳定性。没有日语字幕时不会自动转录。</p></section><section><h2>PowerShell 命令</h2><textarea id="command" readonly spellcheck="false" aria-label="生成的命令"></textarea><div class="actions"><button class="primary" id="copy" disabled>复制下载命令</button><button id="probe" disabled>复制画质与字幕检测命令</button><button id="reset">恢复默认</button></div><p id="status" role="status"></p></section><section><h2>首次使用</h2><p>在 PowerShell 安装依赖（已安装可跳过）：</p><textarea readonly rows="4" aria-label="安装命令">winget install --id yt-dlp.yt-dlp -e
+</style></head><body><main><h1>YouTube 下载命令生成器</h1><p>Windows 11 · PowerShell 5.1+ · yt-dlp / FFmpeg / Deno</p><section><h2>下载配置</h2><label for="url">YouTube 视频链接</label><input id="url" type="url" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off" spellcheck="false"><div class="grid"><div><label for="quality">画质上限</label><select id="quality"><option value="best">最高可用画质</option><option value="4320">4320p · 8K</option><option value="2160">2160p · 4K</option><option value="1440">1440p · 2K</option><option value="1080" selected>1080p</option><option value="720">720p</option><option value="480">480p</option><option value="360">360p</option></select></div><div><label for="threads">分片下载并发数（1～64）</label><input id="threads" type="number" min="1" max="64" step="1" value="16"></div><div><label for="subs">日语字幕</label><select id="subs"><option value="both">投稿者字幕优先 / 自动字幕</option><option value="manual">仅投稿者字幕</option><option value="auto">仅自动字幕</option><option value="none">不下载字幕</option></select></div><div><label for="container">视频容器</label><select id="container"><option value="mp4">MP4</option><option value="mkv">MKV</option></select></div></div><label for="path">保存位置（绝对路径；留空使用默认目录）</label><input id="path" placeholder="默认：用户下载目录\YouTube" spellcheck="false"><label class="check"><input id="embed" type="checkbox"> 同时将字幕嵌入视频，保留独立字幕文件</label><p class="small">画质是上限，不保证视频源具有该画质。并发数只对支持分片下载的协议生效；高并发可能降低稳定性。没有日语字幕时不会自动转录。</p></section><section><h2>PowerShell 命令</h2><textarea id="command" readonly spellcheck="false" aria-label="生成的命令"></textarea><div class="actions"><button class="primary" id="copy" disabled>复制下载命令</button><button id="probe" disabled>复制画质与字幕检测命令</button><button id="reset">恢复默认</button></div><p id="status" role="status"></p></section><section id="benchmark"><h2>下载并发性能基准测试</h2><p>复用上方视频链接与画质。先检测实际视频流协议，普通 HTTPS 自动跳过；只有原生 HLS/DASH 分片才进行测试。请选择已结束、180 秒以内且获准下载的短视频。</p><div class="grid"><div><label for="benchLevels">候选并发数（逗号分隔，必须含 1）</label><input id="benchLevels" value="1,4,8,16,32" spellcheck="false"></div><div><label for="benchRounds">每组重复次数</label><select id="benchRounds"><option value="3" selected>3 次</option><option value="2">2 次（快速）</option></select></div><div><label for="benchCap">单次估计体积上限</label><select id="benchCap"><option value="8">8 MiB</option><option value="16" selected>16 MiB</option><option value="32">32 MiB</option><option value="64">64 MiB</option></select></div><div><label for="benchFormat">固定格式 ID（可选）</label><input id="benchFormat" placeholder="留空：使用当前画质的实际视频流" spellcheck="false"></div></div><p class="small">允许 2～7 个不同候选（1～64）。测试前预估总流量并请求确认；每轮轮换顺序，出现 403/429、协议变化或下载失败就停止。体积上限是估计值而非硬网络限额。每次下载后自动清理临时媒体，保留本地日志及 CSV、HTML 曲线报告。</p><textarea id="benchCommand" readonly spellcheck="false" aria-label="基准测试 PowerShell 脚本"></textarea><div class="actions"><button class="primary" id="benchCopy" disabled>复制测试脚本</button><button id="benchSave" disabled>保存 .ps1 脚本</button></div><p id="benchStatus" role="status"></p><p class="small">复制后直接粘贴到 PowerShell 5.1 执行；也可下载脚本。报告位于用户目录 Downloads\YouTubeBenchmark。推荐值仅适用于此次测试条件；普通 HTTPS 无需增加 -N。</p></section><section><h2>首次使用</h2><p>在 PowerShell 安装依赖（已安装可跳过）：</p><textarea readonly rows="4" aria-label="安装命令">winget install --id yt-dlp.yt-dlp -e
 winget install --id Gyan.FFmpeg -e
-winget install --id DenoLand.Deno -e</textarea><p>重新打开 PowerShell，粘贴生成的命令执行。生成器不会直接下载视频，也不会上传链接或路径。配置仅保存在当前浏览器，视频链接不会保存。</p><p class="small">请仅下载获得授权或符合平台规则的内容。项目依赖：<a href="https://github.com/yt-dlp/yt-dlp">yt-dlp</a>、<a href="https://ffmpeg.org/">FFmpeg</a>、<a href="https://deno.com/">Deno</a>。</p></section></main><script>
+winget install --id DenoLand.Deno -e</textarea><p>重新打开 PowerShell，粘贴生成的命令执行。生成器不会直接下载视频，也不会上传链接或路径。配置仅保存在当前浏览器，视频链接不会保存。</p><p class="small">请仅下载获得授权或符合平台规则的内容。项目依赖：<a href="https://github.com/yt-dlp/yt-dlp">yt-dlp</a>、<a href="https://ffmpeg.org/">FFmpeg</a>、<a href="https://deno.com/">Deno</a>。</p></section></main><script type="text/plain" id="benchTemplate">& {
+$ErrorActionPreference = 'Stop'
+$url = __BENCH_URL__
+$selector = __BENCH_SELECTOR__
+$levels = @(__BENCH_LEVELS__)
+$rounds = __BENCH_ROUNDS__
+$cap = __BENCH_CAP__
+$exe = (Get-Command yt-dlp -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+$root = Join-Path $HOME ('Downloads\YouTubeBenchmark\' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [guid]::NewGuid().ToString('N').Substring(0,8))
+New-Item -ItemType Directory -Path $root -Force | Out-Null
+$common = @('--ignore-config','--no-playlist','--js-runtimes','deno','--socket-timeout','20','--retries','1','--fragment-retries','1')
+Write-Host '正在检测实际视频格式与协议...'
+$ErrorActionPreference = 'Continue'
+$json = & $exe @common -f $selector --dump-single-json --skip-download -- $url 2> (Join-Path $root 'probe.log')
+$probeCode = $LASTEXITCODE
+$ErrorActionPreference = 'Stop'
+if ($probeCode -ne 0 -or -not $json) { Write-Warning "解析失败：$root\probe.log"; return }
+$info = ($json -join [Environment]::NewLine) | ConvertFrom-Json
+if ($info.is_live -or $info.live_status -in @('is_live','is_upcoming','post_live') -or -not $info.duration -or $info.duration -gt 180) {
+    Write-Warning '请选择已结束且不超过 180 秒的授权短视频。'; return
+}
+$fmt = $info
+if ($info.requested_formats) { $fmt = @($info.requested_formats)[0] }
+$id = [string]$fmt.format_id
+$protocol = [string]$fmt.protocol
+if ($id -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$') { Write-Warning '无法锁定单一格式 ID。'; return }
+$meta = @("视频 ID: $($info.id)","格式 ID: $id","协议: $protocol","分辨率: $($fmt.height)p","时长（秒）: $($info.duration)","yt-dlp 版本: $(& $exe --version)","候选并发: $($levels -join ', ')","每组次数: $rounds")
+$meta | Tee-Object -FilePath (Join-Path $root 'metadata.txt')
+if ($protocol -notin @('http_dash_segments','m3u8_native')) {
+    '当前格式不支持原生分片并发；无需测试 -N。该格式建议设为 1。可以使用 -F 查找其他分片格式，但结论不通用。' | Tee-Object -FilePath (Join-Path $root 'result.txt')
+    Write-Host "报告目录：$root"; return
+}
+$estimate = 0.0
+if ($fmt.filesize -gt 0) { $estimate = [double]$fmt.filesize }
+elseif ($fmt.filesize_approx -gt 0) { $estimate = [double]$fmt.filesize_approx }
+elseif ($fmt.tbr -gt 0) { $estimate = [double]$fmt.tbr * 1000 / 8 * [double]$info.duration }
+if ($estimate -le 0 -or $estimate -gt ($cap * 1MB)) {
+    Write-Warning "单次体积未知或估计超过 $cap MiB。请选择更短视频或较低画质。"; return
+}
+$planned = [math]::Round($estimate * $levels.Count * $rounds / 1MB, 1)
+Write-Host "预计下载媒体数据约 $planned MiB，另有请求及重试开销。估计值不是硬流量上限。"
+if ((Read-Host '确认开始测试？输入 Y') -ne 'Y') { Write-Host '已取消。'; return }
+$rows = New-Object 'System.Collections.Generic.List[object]'
+$stopReason = ''
+function Write-BenchReport {
+    $summary = @(foreach ($n in $levels) {
+        $all = @($rows | Where-Object { $_.Concurrency -eq $n })
+        $clean = @($all | Where-Object { $_.Status -eq 'OK' -and $_.RetrySignals -eq 0 } | Sort-Object MiBps)
+        $med = $null
+        if ($clean.Count -eq $rounds -and $all.Count -eq $rounds) {
+            $mid = [int][math]::Floor($clean.Count / 2)
+            $med = if ($clean.Count % 2) { $clean[$mid].MiBps } else { ($clean[$mid-1].MiBps + $clean[$mid].MiBps) / 2 }
+        }
+        [pscustomobject]@{Concurrency=$n;Runs=$all.Count;Clean=$clean.Count;Failed=@($all | Where-Object { $_.Status -ne 'OK' }).Count;RetrySignals=($all | Measure-Object RetrySignals -Sum).Sum;MedianMiBps=$med}
+    })
+    $summary | Export-Csv (Join-Path $root 'summary.csv') -NoTypeInformation -Encoding UTF8
+    $rank = @($summary | Where-Object { $null -ne $_.MedianMiBps -and $_.MedianMiBps -gt 0 } | Sort-Object MedianMiBps -Descending)
+    $message = '没有可靠推荐：至少一组必须全部成功且无重试信号。'
+    if ($stopReason -or $rows.Count -ne ($rounds * $levels.Count)) { $message = '测试提前停止或未完成，不给出推荐值。' }
+    elseif ($rank.Count -gt 0) {
+        $best = $rank[0].MedianMiBps
+        $rec = @($rank | Where-Object { $_.MedianMiBps -ge 0.95 * $best } | Sort-Object Concurrency)[0]
+        $message = "本次推荐并发数：$($rec.Concurrency)。最快组中位数：$([math]::Round($best,3)) MiB/s；达到最快组 95% 时优先低并发。"
+    }
+    $summary | Format-Table -AutoSize | Out-Host
+    Write-Host $message
+    $culture = [Globalization.CultureInfo]::InvariantCulture
+    $svg = '<svg viewBox="0 0 740 300" role="img" aria-label="并发速度曲线"><path d="M55 20 V250 H720" fill="none" stroke="#8993a1"/>'
+    $max = if ($rank.Count) { [double]$rank[0].MedianMiBps } else { 1.0 }
+    $prev = $null
+    for ($i=0; $i -lt $summary.Count; $i++) {
+        $s = $summary[$i]
+        $x = 65 + 640 * $i / [math]::Max(1,($summary.Count-1))
+        $xs = $x.ToString('0.0',$culture)
+        $svg += '<text x="'+$xs+'" y="270" text-anchor="middle" font-size="12">'+$s.Concurrency+'</text>'
+        if ($null -eq $s.MedianMiBps) { $prev=$null; continue }
+        $y = 240 - 200 * [double]$s.MedianMiBps / $max
+        $ys = $y.ToString('0.0',$culture)
+        if ($prev) { $svg += '<line x1="'+$prev[0]+'" y1="'+$prev[1]+'" x2="'+$xs+'" y2="'+$ys+'" stroke="#2459c4" stroke-width="2"/>' }
+        $svg += '<circle cx="'+$xs+'" cy="'+$ys+'" r="4" fill="#2459c4"/><text x="'+$xs+'" y="'+([math]::Round($y-10)).ToString($culture)+'" text-anchor="middle" font-size="11">'+([double]$s.MedianMiBps).ToString('0.00',$culture)+'</text>'
+        $prev=@($xs,$ys)
+    }
+    $svg += '<text x="385" y="293" text-anchor="middle" font-size="12">并发数量（类别轴）</text><text x="8" y="14" font-size="12">MiB/s</text></svg>'
+    $table = ($summary | ConvertTo-Html -Fragment) -join [Environment]::NewLine
+    $details = ($rows | ConvertTo-Html -Fragment) -join [Environment]::NewLine
+    $safe = [Net.WebUtility]::HtmlEncode($message)
+    $safeMeta = [Net.WebUtility]::HtmlEncode(($meta -join [Environment]::NewLine))
+    $safeStop = [Net.WebUtility]::HtmlEncode($stopReason)
+    @"
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>下载并发性能基准测试</title><style>body{font:16px/1.6 system-ui,sans-serif;max-width:1000px;margin:32px auto;padding:0 16px;color:#202936}table{border-collapse:collapse;width:100%;font-size:13px}td,th{border:1px solid #d5dce5;padding:6px;text-align:left}th{background:#eef2f7}svg{max-width:740px;width:100%}pre{white-space:pre-wrap;background:#f3f5f8;padding:12px}</style><h1>下载并发性能基准测试</h1><p>$safe</p><p>$safeStop</p><pre>$safeMeta</pre><p>有效速度 = 完整输出媒体字节数 / 端到端耗时（含解析及连接）；仅完成全部轮次且无重试信号的组参与比较。结果不代表服务器或软件硬上限。</p>$svg<h2>分组统计</h2>$table<h2>每次测试</h2>$details<p>本地原始日志可能含临时媒体链接，请勿直接公开。</p></html>
+"@ | Set-Content (Join-Path $root 'report.html') -Encoding UTF8
+}
+try {
+    for ($r=0; $r -lt $rounds; $r++) {
+        for ($j=0; $j -lt $levels.Count; $j++) {
+            $n = $levels[($j+$r) % $levels.Count]
+            $sampleDir = Join-Path $root ('sample-' + ($r+1) + '-' + $n)
+            New-Item -ItemType Directory -Path $sampleDir | Out-Null
+            $log = Join-Path $root ("round-{0}-N{1}.log" -f ($r+1),$n)
+            Write-Host "第 $($r+1)/$rounds 轮，N=$n"
+            $sw = [Diagnostics.Stopwatch]::StartNew()
+            try {
+                $arguments = $common + @('-f',$id,'-N',[string]$n,'--downloader','native','--no-progress','--no-simulate','--no-quiet','--abort-on-unavailable-fragments','--no-continue','--fixup','never','--max-filesize',([string]$cap+'M'),'--print','before_dl:BENCH_PROTOCOL=%(protocol)s;FORMAT=%(format_id)s','-o',(Join-Path $sampleDir 'sample.%(ext)s'),'--',$url)
+                $ErrorActionPreference = 'Continue'
+                & $exe @arguments 2>&1 | ForEach-Object { $_.ToString() } | Out-File $log -Encoding UTF8
+                $code = $LASTEXITCODE
+                $ErrorActionPreference = 'Stop'
+                $sw.Stop()
+                $logText = Get-Content $log -Raw
+                $signals = [regex]::Matches([string]$logText,'(?im)^.*(?:retrying|retry attempt).*$').Count
+                $access = $logText -match '(?i)(?:HTTP Error|status code|HTTP status|server returned)\s*:?\s*(429|403)\b|Too Many Requests'
+                $marker = [regex]::Matches([string]$logText,'(?m)^BENCH_PROTOCOL=([^;\r\n]+);FORMAT=([^\r\n]+)\r?$')
+                $verified = $marker.Count -eq 1 -and $marker[0].Groups[1].Value -eq $protocol -and $marker[0].Groups[2].Value -eq $id
+                $files = @(Get-ChildItem $sampleDir -File)
+                $bytes = 0L
+                $status = 'Failed'
+                if ($code -eq 0 -and $verified -and $files.Count -eq 1 -and $files[0].Name -match '^sample\.[A-Za-z0-9]+$' -and $files[0].Name -notmatch '\.(part|ytdl|tmp)$' -and $files[0].Length -gt 0) {
+                    $bytes = $files[0].Length
+                    $status = 'OK'
+                    if ($bytes -gt ($cap * 1MB)) { $status='SizeExceeded'; $stopReason='实际体积超过预算，停止后续测试。' }
+                }
+                if ($access) { $status='AccessDenied'; $stopReason='检测到 403/429 或限流，停止后续测试。' }
+                elseif (-not $verified) { $status='ProtocolUnverified'; $stopReason='实际格式或协议无法验证，停止后续测试。' }
+                $sec = [math]::Max(0.001,$sw.Elapsed.TotalSeconds)
+                $speed = if ($status -eq 'OK') { [math]::Round($bytes / 1MB / $sec, 4) } else { 0 }
+                $row = [pscustomobject]@{Round=($r+1);Concurrency=$n;Status=$status;ExitCode=$code;Bytes=$bytes;Seconds=[math]::Round($sec,3);MiBps=$speed;RetrySignals=$signals}
+                $rows.Add($row)
+                $row | Export-Csv (Join-Path $root 'runs.csv') -Append -NoTypeInformation -Encoding UTF8
+                Write-Host "$status | $speed MiB/s | 重试信号：$signals"
+                if ($status -ne 'OK' -and -not $stopReason) { $stopReason='下载失败，停止后续测试以避免重复错误请求。' }
+            } finally {
+                $ErrorActionPreference = 'Stop'
+                if ($sw.IsRunning) { $sw.Stop() }
+                if (Test-Path $sampleDir) { Remove-Item -LiteralPath $sampleDir -Recurse -Force }
+            }
+            if ($stopReason) { break }
+            if ($r -ne ($rounds-1) -or $j -ne ($levels.Count-1)) { Start-Sleep -Seconds 3 }
+        }
+        if ($stopReason) { break }
+    }
+} finally {
+    Write-BenchReport
+    Write-Host "报告目录：$root"
+}
+}</script><script>
 'use strict';
 const $=id=>document.getElementById(id), keys=['quality','threads','subs','container','path','embed'], defaults={quality:'1080',threads:'16',subs:'both',container:'mp4',path:'',embed:false}, storageKey='youtube-command-settings-v1';
 const quote=s=>"'"+s.replace(/'/g,"''")+"'";
@@ -15,4 +159,30 @@ function restore(o){for(const k of keys){if(k==='embed')$(k).checked=o[k]===true
 async function copy(s){try{await navigator.clipboard.writeText(s);$('status').textContent='已复制。'}catch{const t=$('command');t.value=s;t.focus();t.select();try{if(document.execCommand('copy')){$('status').textContent='已复制。';return}}catch{}$('status').textContent='请按 Ctrl+C 手动复制选中的命令。'}}
 try{restore({...defaults,...JSON.parse(localStorage.getItem(storageKey)||'{}')})}catch{restore(defaults)}
 for(const k of [...keys,'url'])$(k).addEventListener('input',refresh);$('copy').addEventListener('click',()=>{const s=build({...options(),url:$('url').value.trim()});$('command').value=s;copy(s)});$('probe').addEventListener('click',()=>copy('yt-dlp --no-playlist --js-runtimes deno -F --list-subs -- '+quote($('url').value.trim())));$('reset').addEventListener('click',()=>{restore(defaults);refresh()});refresh();
+function benchmarkScript(template,url,quality,format,levels,rounds,cap) {
+  const q=s=>"'"+s.replace(/'/g,"''")+"'";
+  const selector=format||(quality==="best"?"bv+ba/b":`bv[height<=${quality}]+ba/b[height<=${quality}]`);
+  const vals={URL:q(url),SELECTOR:q(selector),LEVELS:levels.join(","),ROUNDS:String(rounds),CAP:String(cap)};
+  return template.replace(/__BENCH_(URL|SELECTOR|LEVELS|ROUNDS|CAP)__/g,(_,k)=>vals[k]);
+}
+function parseBench(raw,format,rounds,cap) {
+  const parts=raw.split(",").map(s=>s.trim());
+  if(parts.length<2||parts.length>7||parts.some(s=>!/^\d+$/.test(s)))return null;
+  const levels=parts.map(Number);
+  if(levels.some(n=>n<1||n>64)||new Set(levels).size!==levels.length||!levels.includes(1)||![2,3].includes(rounds)||![8,16,32,64].includes(cap)||(format&&!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(format)))return null;
+  return levels.sort((a,b)=>a-b);
+}
+function refreshBench(){
+  const url=$('url').value.trim(), quality=$('quality').value, format=$('benchFormat').value.trim(), rounds=Number($('benchRounds').value), cap=Number($('benchCap').value);
+  const levels=parseBench($('benchLevels').value,format,rounds,cap);
+  const good=validURL(url)&&!!levels;
+  $('benchCopy').disabled=!good; $('benchSave').disabled=!good;
+  $('benchCommand').value=good?benchmarkScript($('benchTemplate').textContent.trim(),url,quality,format,levels,rounds,cap):'';
+  $('benchStatus').textContent=!validURL(url)?'请先在上方输入有效 YouTube 视频链接。':!levels?'候选必须包含 1、互不重复且在 1～64 之间；格式 ID 仅允许字母、数字、点、下划线和连字符。':'已生成 '+(levels.length*rounds)+' 次测试的脚本。单次估计上限合计 '+(levels.length*rounds*cap)+' MiB（不含开销）。';
+}
+for(const id of ['url','quality','benchLevels','benchRounds','benchCap','benchFormat'])$(id).addEventListener('input',refreshBench);
+$('reset').addEventListener('click',refreshBench);
+$('benchCopy').addEventListener('click',async()=>{const t=$('benchCommand');try{await navigator.clipboard.writeText(t.value);$('benchStatus').textContent='已复制测试脚本。'}catch{t.focus();t.select();try{if(document.execCommand('copy')){$('benchStatus').textContent='已复制测试脚本。';return}}catch{}$('benchStatus').textContent='请按 Ctrl+C 复制选中的脚本。'}});
+$('benchSave').addEventListener('click',()=>{const blob=new Blob(['\uFEFF',$('benchCommand').value],{type:'text/plain;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='youtube-concurrency-benchmark.ps1';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);});
+refreshBench();
 </script></body></html>
